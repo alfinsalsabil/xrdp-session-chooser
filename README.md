@@ -105,9 +105,11 @@ rm ~/.xsession
 
 ## Technical Notes
 
-> **Warning**: Do NOT add `unset DBUS_SESSION_BUS_ADDRESS` inside `~/.xsession`. The Xsession.d pipeline (`75dbus_dbus-launch`) creates a fresh D-Bus session bus before `~/.xsession` runs. Unsetting it here destroys that bus, causing broken desktop functionality.
+> [!WARNING]
+> Do NOT add `unset DBUS_SESSION_BUS_ADDRESS` inside `~/.xsession`. The Xsession.d pipeline (`75dbus_dbus-launch`) creates a fresh D-Bus session bus before `~/.xsession` runs. Unsetting it here destroys that bus, causing broken desktop functionality.
 
-> The `unset DBUS_SESSION_BUS_ADDRESS` line belongs in `/etc/xrdp/startwm.sh` (before the Xsession.d pipeline runs), which is the [recommended fix](https://askubuntu.com/) for XRDP black screen issues.
+> [!NOTE]
+> The `unset DBUS_SESSION_BUS_ADDRESS` line belongs in `/etc/xrdp/startwm.sh` (before the Xsession.d pipeline runs), which is the [recommended fix](https://askubuntu.com/questions/1432489/xrdp-shows-a-blank-screen-after-login) for XRDP black screen issues.
 
 ## License
 
