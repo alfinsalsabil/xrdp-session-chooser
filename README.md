@@ -1,44 +1,44 @@
-# XRDP Session Chooser
+# xrdp-session-chooser
 
-A lightweight desktop environment selector for [XRDP](https://github.com/neutrinolabs/xrdp) sessions using `xmessage`.
+![License](https://img.shields.io/github/license/alfinsalsabil/xrdp-session-chooser)
+![Platform](https://img.shields.io/badge/platform-linux-blue)
+![Shell](https://img.shields.io/badge/shell-bash-success)
 
-When you connect via RDP, a centered dialog instantly appears letting you choose which desktop environment to start — no lag, no heavy dependencies.
+Hey there! 👋 I do a lot of remote "vibecoding" and use XRDP to connect to my Linux machines. XRDP is awesome, but it has one annoying quirk: you can't natively pick your Desktop Environment (like XFCE, GNOME, KDE, or i3) right from the login screen. 
 
-## Problem
+I tried the usual workarounds floating around the internet, but they all felt clunky. So, I put together this super lightweight session chooser. It pops up instantly, looks clean, and just works. I hope it makes your remote desktop life a little easier!
 
-XRDP doesn't natively let you pick a desktop environment from its login screen (the dropdown controls the backend type like Xorg/Xvnc, not the DE). Common workarounds using `xterm` + `whiptail` or `zenity` suffer from:
+## 🐛 The Headaches (Why existing workarounds drove me crazy)
+If you've tried to build a session chooser before using tools like `xterm` + `whiptail` or `zenity`, you probably ran into these issues:
+- **Annoying Lag**: You get a 3-5 second blank screen while GTK, D-Bus, and fonts try to initialize before the Window Manager is even ready.
+- **Squished Windows**: Dialogs open as tiny boxes jammed in the top-left corner because there's no Window Manager running yet to tell them where to go.
+- **Broken Desktops**: A lot of tutorials tell you to `unset DBUS_SESSION_BUS_ADDRESS` inside your `~/.xsession` file. Doing this actually destroys the bus and breaks your desktop features!
 
-- **3-5 second startup lag** due to GTK/D-Bus/fontconfig initialization before the Window Manager is ready
-- **Small window in the top-left corner** because `xterm -fullscreen` requires a Window Manager to handle the fullscreen hint, but no WM is running yet
-- **Breaking D-Bus** if `unset DBUS_SESSION_BUS_ADDRESS` is placed in `~/.xsession` (it destroys the bus already created by the Xsession.d pipeline)
+## 💡 The "Aha!" Moment: Good ol' `xmessage`
+The fix? Going old-school. This script uses `xmessage`, a super minimal utility built right into the X11 core.
+- It starts **instantly** (~5ms). No heavy GTK loading or font scanning.
+- It uses the `-center` flag to place itself perfectly in the middle of your screen, **even without a Window Manager**.
+- It automatically reads `/usr/share/xsessions/*.desktop` and builds clicky buttons for every desktop environment you have installed. If you don't click anything, it safely falls back to your first available DE after 60 seconds.
 
-## Solution
+---
 
-This script uses `xmessage`, a minimal X11 utility that:
+## 🛠️ Requirements
 
-- Starts **instantly** (~5ms) — no GTK, no D-Bus, no font scanning
-- Centers itself on screen with `-center` — works **without a Window Manager**
-- Auto-detects installed DEs from `/usr/share/xsessions/*.desktop`
-- Falls back to the first available DE on timeout (default: 60 seconds)
+You just need XRDP and `xmessage` (which is usually part of the X11 core utilities).
 
-## Requirements
-
-- **XRDP** (tested with v0.9.24)
-- **xmessage** (part of X11 core utilities)
-
-### Install xmessage
-
-| Distro | Command |
+| Distro | How to install `xmessage` |
 |--------|---------|
 | Debian/Ubuntu/Mint | `sudo apt install x11-utils` |
 | Arch Linux | `sudo pacman -S xorg-xmessage` |
 | Fedora | `sudo dnf install xmessage` |
 | openSUSE | `sudo zypper install xmessage` |
 
-## Installation
+---
 
-### Quick Install
+## 🚀 Installation
 
+### The Easy Way (Quick Install)
+I wrote a quick installer that checks your distro, backs up your old files, and sets everything up safely.
 ```bash
 git clone https://github.com/alfinsalsabil/xrdp-session-chooser.git
 cd xrdp-session-chooser
@@ -46,46 +46,21 @@ chmod +x install.sh
 ./install.sh
 ```
 
-The installer will:
-1. Check that `xmessage` is installed
-2. Detect your distro and choose the correct target file (`~/.xsession` or `~/.xinitrc`)
-3. Back up your existing session file (if any)
-4. Install the chooser script
-5. Show you the detected desktop environments
-
-### Manual Install
-
+### The Manual Way
+If you prefer doing things by hand:
 ```bash
-# Back up existing file
+# Back up your existing file just in case
 cp ~/.xsession ~/.xsession.bak 2>/dev/null
 
-# Copy and make executable
+# Copy the script and make it executable
 cp xsession ~/.xsession
 chmod +x ~/.xsession
 ```
 
-## How It Works
+---
 
-```
-XRDP Login
-  → xrdp-sesman
-    → /etc/xrdp/startwm.sh
-      → /etc/X11/Xsession (Debian/Mint)
-        → Xsession.d pipeline (D-Bus, env setup)
-          → exec ~/.xsession     ← THIS SCRIPT
-            → xmessage dialog
-              → exec chosen-session
-```
-
-The script reads `/usr/share/xsessions/*.desktop` files to discover available desktop environments, builds `xmessage` buttons dynamically, and `exec`s the selected session command.
-
-## Configuration
-
-The script auto-detects everything. No configuration needed.
-
-If you want to customize the timeout, edit the `TIMEOUT=60` variable at the top of the script.
-
-## Compatibility
+## ⚙️ Compatibility
+The script auto-detects your setup, so no manual configuration is needed!
 
 | Distro | Startup File | Status |
 |--------|-------------|--------|
@@ -94,23 +69,17 @@ If you want to customize the timeout, edit the `TIMEOUT=60` variable at the top 
 | Fedora | `~/.xsession` | ✅ Supported |
 | openSUSE | `~/.xsession` | ✅ Supported |
 
-## Uninstall
-
-```bash
-# Restore your backup
-cp ~/.xsession.bak ~/.xsession
-# Or simply delete it to use system defaults
-rm ~/.xsession
-```
-
-## Technical Notes
+## ⚠️ A Quick Tip I Learned the Hard Way (Technical Note)
 
 > [!WARNING]
-> Do NOT add `unset DBUS_SESSION_BUS_ADDRESS` inside `~/.xsession`. The Xsession.d pipeline (`75dbus_dbus-launch`) creates a fresh D-Bus session bus before `~/.xsession` runs. Unsetting it here destroys that bus, causing broken desktop functionality.
+> Please do NOT add `unset DBUS_SESSION_BUS_ADDRESS` inside your `~/.xsession` file. 
+> The system pipeline (`75dbus_dbus-launch`) creates a fresh D-Bus session before `~/.xsession` runs. If you unset it here, you destroy that bus. 
 
 > [!NOTE]
-> The `unset DBUS_SESSION_BUS_ADDRESS` line belongs in `/etc/xrdp/startwm.sh` (before the Xsession.d pipeline runs). This is the widely recommended fix for XRDP black screen issues on Debian/Ubuntu/Mint.
+> If you are trying to fix the infamous XRDP "black screen" issue on Debian/Ubuntu, the `unset DBUS_SESSION_BUS_ADDRESS` line belongs in `/etc/xrdp/startwm.sh` (right at the top, before the Xsession.d pipeline runs). 
 
-## License
+## 🤝 Let's Make It Better
+I'm just a guy enjoying the vibecoding life. If you find a bug, have a cool idea, or just want to improve the code, feel free to open an Issue or a Pull Request! Let's build cool things together.
 
-[MIT](LICENSE)
+---
+License: [MIT](LICENSE)
